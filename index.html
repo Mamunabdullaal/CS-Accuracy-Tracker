@@ -1,587 +1,544 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warehouse AI Manager</title>
-    <!-- Tailwind CSS CDN -->
+    <title>CS Accuracy Dashboard</title>
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
         body {
             font-family: 'Inter', sans-serif;
-            transition: background-color 0.5s ease;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding: 1.5rem;
-            background-image: linear-gradient(to bottom right, var(--bg-start-color), var(--bg-end-color));
-            background-attachment: fixed; /* Ensures gradient covers full page */
         }
 
-        /* CSS Variables for Dynamic Colors */
-        :root {
-            /* Light Mode Defaults */
-            --bg-start-color: #e0f2fe; /* Light Blue 50 */
-            --bg-end-color: #f0f9ff; /* Light Blue 100 */
-            --container-bg: rgba(255, 255, 255, 0.95);
-            --section-bg: rgba(255, 255, 255, 0.85);
-            --border-color: rgba(226, 232, 240, 0.7);
-            --text-color: #1a202c;
-            --title-color: #0f172a;
-            --placeholder-color: #64748b;
-            --input-bg: rgba(255, 255, 255, 0.98);
-            --input-border-focus: #0ea5e9; /* Sky 500 */
-            --input-shadow-focus: rgba(14, 165, 233, 0.3);
-            --button-primary-bg: #0ea5e9; /* Sky 500 */
-            --button-primary-hover-bg: #0284c7; /* Sky 600 */
-            --button-text-color: white;
-            --copy-button-bg: #22c55e; /* Green 500 */
-            --copy-button-hover-bg: #16a34a; /* Green 600 */
-            --spinner-color: #0ea5e9;
-            --error-color: #dc2626;
-            --popup-bg: #ffffff;
-            --popup-text-color: #1e293b;
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
-
-        /* Dark Mode Overrides */
-        .dark {
-            --bg-start-color: #1a202c; /* Dark Blue Gray 900 */
-            --bg-end-color: #2d3748; /* Dark Blue Gray 800 */
-            --container-bg: rgba(30, 41, 59, 0.95); /* Slate 900 with transparency */
-            --section-bg: rgba(30, 41, 59, 0.85); /* Slate 900 with more transparency */
-            --border-color: rgba(71, 85, 105, 0.7); /* Slate 700 with transparency */
-            --text-color: #e2e8f0; /* Light text */
-            --title-color: #f8fafc; /* Very light text */
-            --placeholder-color: #a0aec0; /* Gray 400 */
-            --input-bg: rgba(30, 41, 59, 0.98);
-            --input-border-focus: #38b2ac; /* Teal 400 */
-            --input-shadow-focus: rgba(56, 178, 172, 0.4);
-            --button-primary-bg: #38b2ac; /* Teal 400 */
-            --button-primary-hover-bg: #319795; /* Teal 500 */
-            --button-text-color: #1a202c; /* Dark text for contrast */
-            --copy-button-bg: #68d391; /* Green 400 */
-            --copy-button-hover-bg: #48bb78; /* Green 500 */
-            --spinner-color: #38b2ac;
-            --error-color: #fc8181;
-            --popup-bg: #2d3748;
-            --popup-text-color: #e2e8f0;
-        }
-
-        /* Apply variables */
-        .container {
-            background-color: var(--container-bg);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
-        }
-        .section-box {
-            background-color: var(--section-bg);
-            border: 1px solid var(--border-color);
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .section-title {
-            color: var(--title-color);
-        }
-        .info-text {
-            color: var(--placeholder-color);
-        }
-        .action-button {
-            background-color: var(--button-primary-bg);
-            color: var(--button-text-color);
-        }
-        .action-button:hover {
-            background-color: var(--button-primary-hover-bg);
-        }
-        textarea {
-            background-color: var(--input-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-        }
-        textarea::placeholder { /* Style placeholder text */
-            color: var(--placeholder-color);
-            opacity: 0.7; /* Make placeholder slightly less prominent */
-        }
-        textarea:focus {
-            border-color: var(--input-border-focus);
-            box-shadow: 0 0 0 3px var(--input-shadow-focus);
-        }
-        .result-area {
-            background-color: var(--section-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-        }
-        .status-message {
-            color: var(--placeholder-color);
-        }
-        .error-message {
-            color: var(--error-color);
-        }
-        .loading-spinner {
-            border-left-color: var(--spinner-color);
-        }
-        .copy-button {
-            background-color: var(--copy-button-bg);
-            color: var(--button-text-color); /* Use button text color for copy button */
-        }
-        .copy-button:hover {
-            background-color: var(--copy-button-hover-bg);
-        }
-
-        /* Pop-up styles */
-        .popup-content {
-            background-color: var(--popup-bg);
-            color: var(--popup-text-color);
-        }
-        .popup-header {
-            color: var(--title-color);
-        }
-        .popup-body p {
-            color: var(--popup-text-color); /* Ensure popup body text is readable */
-        }
-
-        /* General layout and component styles */
-        .container {
-            max-width: 1000px;
-            margin: 2rem auto;
-            padding: 2.5rem;
-            border-radius: 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex-grow: 1;
-        }
-        .section-box {
-            width: 100%;
-            padding: 2rem;
-            border-radius: 12px;
-        }
-        .section-title {
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-        textarea {
-            width: 100%;
-            padding: 1rem;
-            border-radius: 8px;
-            resize: vertical;
-            min-height: 150px; /* Increased min-height for more space */
-            font-size: 1rem;
-            line-height: 1.5; /* Improved line spacing */
-        }
-        .action-button {
-            padding: 0.85rem 2rem;
-            font-weight: 700;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            cursor: pointer;
-            border: none;
+        
+        table {
+            border-collapse: collapse;
             width: 100%;
         }
-        .action-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            box-shadow: none;
-            transform: none;
-        }
-        .loading-spinner {
-            border: 5px solid;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin-top: 2rem;
-            display: none;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .result-area {
-            min-height: 150px; /* Increased min-height for more space */
+
+        th, td {
+            padding: 12px 16px;
             text-align: left;
-            line-height: 1.7; /* Increased line height for readability */
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            padding: 1.5rem;
-            border-radius: 8px;
-        }
-        .copy-button {
-            padding: 0.6rem 1.2rem;
-            font-weight: 600;
-            border-radius: 8px;
-            transition: background-color 0.3s ease;
-            margin-top: 1rem;
-            align-self: flex-end; /* Align to the right within flex column */
-        }
-        .copy-button:hover {
-            transform: translateY(-1px);
+            white-space: nowrap;
         }
 
-        /* Pop-up (formerly modal) styles */
-        .popup-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-        .popup-overlay.show {
-            opacity: 1;
-            visibility: visible;
-        }
-        .popup-content {
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-            width: 90%;
-            max-width: 400px;
-            transform: translateY(-20px);
-            transition: transform 0.3s ease;
-        }
-        .popup-overlay.show .popup-content {
-            transform: translateY(0);
-        }
-        .popup-header {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            text-align: center;
-        }
-        .popup-body {
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-        .popup-actions {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-        }
-        .popup-actions button {
-            padding: 0.6rem 1.2rem;
-            border-radius: 8px;
+        thead th {
+            background-color: #f9fafb;
+            color: #4b5563;
             font-weight: 600;
-            transition: background-color 0.3s ease;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
-        .popup-actions .close-button {
-            background-color: #ef4444; /* Red 500 */
-            color: white;
+
+        tbody tr:nth-child(even) {
+            background-color: #f3f4f6;
         }
-        .popup-actions .close-button:hover {
-            background-color: #dc2626; /* Red 600 */
+
+        /* Simple spinning animation for the loader */
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .animate-spin-slow {
+            animation: spin 1.5s linear infinite;
         }
     </style>
 </head>
-<body class="p-6">
-    <div class="container">
-        <header class="w-full flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-extrabold transition-colors duration-500" style="color: var(--title-color);">Warehouse AI Manager</h1>
-            <button id="themeToggle" class="p-2 rounded-full transition-colors duration-300">
-                <svg id="sunIcon" class="w-6 h-6 text-yellow-500 hidden" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 00-1.414 1.414l.707.707a1 1 0 101.414-1.414l-.707-.707zM10 18a1 1 0 01-1 1v1a1 1 0 102 0v-1a1 1 0 01-1-1zM3.536 5.05a1 1 0 00-1.414-1.414l-.707.707a1 1 0 101.414 1.414l.707-.707zm12.728 0l-.707-.707a1 1 0 00-1.414 1.414l.707.707a1 1 0 001.414-1.414zM7 10a3 3 0 11-6 0 3 3 0 016 0zm-2 0a1 1 0 102 0 1 1 0 00-2 0zm-2 0a1 1 0 102 0 1 1 0 00-2 0z"></path>
-                </svg>
-                <svg id="moonIcon" class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-                </svg>
+<body class="bg-gray-100 text-gray-800 p-4 sm:p-8">
+
+    <!-- Message box for errors or success -->
+    <div id="message-box" class="fixed top-5 left-1/2 -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50 hidden"></div>
+
+    <div class="max-w-7xl mx-auto space-y-8">
+        <!-- Header Section -->
+        <div class="bg-gradient-to-r from-indigo-500 to-blue-600 text-white text-center p-8 rounded-xl shadow-xl">
+            <h1 class="text-3xl sm:text-4xl font-bold">CS Accuracy Dashboard</h1>
+            <p class="mt-2 text-md sm:text-lg">Data loaded directly from Google Sheet.</p>
+        </div>
+
+        <!-- Date Filter Section -->
+        <div class="bg-white p-6 rounded-xl shadow-md flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
+            <h2 class="text-xl font-semibold w-full md:w-auto">Filter by Date Range</h2>
+            <div class="flex items-center space-x-2 w-full md:w-auto">
+                <label for="start-date" class="font-medium text-gray-700">Start Date:</label>
+                <input type="date" id="start-date" class="p-2 border border-gray-300 rounded-md w-full md:w-auto">
+            </div>
+            <div class="flex items-center space-x-2 w-full md:w-auto">
+                <label for="end-date" class="font-medium text-gray-700">End Date:</label>
+                <input type="date" id="end-date" class="p-2 border border-gray-300 rounded-md w-full md:w-auto">
+            </div>
+            <button id="apply-filter-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition-colors duration-300 w-full md:w-auto">
+                Apply Filter
             </button>
-        </header>
-
-        <p class="text-lg mb-8 text-center transition-colors duration-500" style="color: var(--text-color);">
-            Get AI-powered insights for your warehouse case scenarios based on the official rules.
-        </p>
-
-        <!-- Case Scenario Input Box -->
-        <div class="section-box mb-8">
-            <h2 class="section-title">Case Scenario</h2>
-            <p class="info-text">Describe the situation or keywords to get a relevant AI response.</p>
-            <textarea id="caseInput" placeholder="E.g., 'customer provided fake shipping label' or 'packing time inconsistent'"></textarea>
-            <button id="submitCaseButton" class="action-button mt-4">Get AI Response</button>
         </div>
 
-        <div id="loadingSpinner" class="loading-spinner"></div>
-        <div id="statusMessage" class="status-message hidden mt-4"></div>
-
-        <!-- AI Response Display Box -->
-        <div class="section-box mt-8 flex flex-col">
-            <h2 class="section-title">AI Response</h2>
-            <div id="aiAnswer" class="result-area">
-                <p class="transition-colors duration-500" style="color: var(--placeholder-color);">Your AI-generated answer will appear here.</p>
+        <!-- Dashboard Content -->
+        <div id="dashboard-content" class="space-y-8">
+            <!-- Loading State -->
+            <div id="loading-state" class="flex flex-col justify-center items-center h-full text-gray-500 text-lg py-20">
+                <svg class="animate-spin-slow h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="mt-4">Loading data from Google Sheet...</p>
             </div>
-            <button id="copyResponseButton" class="copy-button hidden">Copy Response</button>
-            <div id="errorMessage" class="error-message hidden mt-4"></div>
+            
+            <!-- Overall Summary -->
+            <div id="summary-section" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 hidden">
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500">
+                    <div class="text-sm font-medium text-gray-500">Overall Accuracy</div>
+                    <div id="overall-accuracy" class="text-3xl font-bold text-gray-900 mt-1">--</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-indigo-500">
+                    <div class="text-sm font-medium text-gray-500">Total Audits</div>
+                    <div id="total-audits" class="text-3xl font-bold text-gray-900 mt-1">--</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-green-500">
+                    <div class="text-sm font-medium text-gray-500">Total Correct</div>
+                    <div id="total-correct" class="text-3xl font-bold text-gray-900 mt-1">--</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500">
+                    <div class="text-sm font-medium text-gray-500">Total Errors</div>
+                    <div id="total-errors" class="text-3xl font-bold text-gray-900 mt-1">--</div>
+                </div>
+            </div>
+
+            <!-- Daily Trend Chart -->
+            <div id="chart-section" class="bg-white p-6 rounded-xl shadow-md hidden">
+                <h2 class="text-xl font-semibold mb-4">Daily Accuracy Trend (MTD)</h2>
+                <canvas id="daily-accuracy-chart"></canvas>
+            </div>
+
+            <!-- Team Performance -->
+            <div id="team-section" class="bg-white p-6 rounded-xl shadow-md hidden">
+                <h2 class="text-xl font-semibold mb-4">Team Performance</h2>
+                <div class="table-container">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team Lead</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Accuracy</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample Size</th>
+                            </tr>
+                        </thead>
+                        <tbody id="team-performance-body" class="bg-white divide-y divide-gray-200">
+                            <!-- Team data will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Agent wise Report -->
+            <div id="agent-section" class="bg-white p-6 rounded-xl shadow-md hidden">
+                <h2 class="text-xl font-semibold mb-4">All Active Agents Report</h2>
+                <div class="table-container">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correct</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Error</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Accuracy</th>
+                            </tr>
+                        </thead>
+                        <tbody id="all-agents-body" class="bg-white divide-y divide-gray-200">
+                            <!-- Agent data will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Bottom Performers -->
+            <div id="bottom-performers-section" class="bg-white p-6 rounded-xl shadow-md hidden">
+                <h2 class="text-xl font-semibold mb-4">Bottom Performers (Accuracy < 96%)</h2>
+                <div class="table-container">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Accuracy</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample Size</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bottom-agents-body" class="bg-white divide-y divide-gray-200">
+                            <!-- Bottom agents will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Irrelevant Question / Error Pop-up -->
-    <div id="irrelevantQuestionPopup" class="popup-overlay">
-        <div class="popup-content">
-            <div class="popup-header">Information Not Found</div>
-            <div class="popup-body">
-                <p id="irrelevantMessage"></p>
-            </div>
-            <div class="popup-actions">
-                <button id="closeIrrelevantPopup" class="close-button">Close</button>
-            </div>
-        </div>
-    </div>
+<script>
+    // === IMPORTANT: REPLACE THESE WITH YOUR OWN CONFIGURATION ===
+    // Your Google Sheet ID is in the URL: docs.google.com/spreadsheets/d/YOUR_SHEET_ID/
+    var SPREADSHEET_ID = '1Bq3p9nNZWlziFI79VvPeP6U9uaj3-9XOektqDDKPcVA';
+    // This is the URL of your deployed Google Apps Script Web App.
+    var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZUBwaHd3pRTwlCu8UomStNt05Y2TvrpkFbV9itiDYfkwosYYREdF_cnn14OsHbHP2/exec';
+    
+    // --- Global State ---
+    var myChart;
+    var rawData = {};
+    
+    // --- DOM Elements ---
+    var loadingState = document.getElementById('loading-state');
+    var summarySection = document.getElementById('summary-section');
+    var chartSection = document.getElementById('chart-section');
+    var teamSection = document.getElementById('team-section');
+    var agentSection = document.getElementById('agent-section');
+    var bottomPerformersSection = document.getElementById('bottom-performers-section');
+    var applyFilterBtn = document.getElementById('apply-filter-btn');
 
-    <script type="module">
-        const WAREHOUSE_KB_URL = 'https://mamunabdullaal.github.io/Warehouse-KB/';
-        const GEMINI_MODEL = 'gemini-2.0-flash'; // Using gemini-2.0-flash for multimodal capabilities
+    // --- Utility Functions ---
 
-        // DOM Elements
-        const themeToggle = document.getElementById('themeToggle');
-        const sunIcon = document.getElementById('sunIcon');
-        const moonIcon = document.getElementById('moonIcon');
-        const caseInput = document.getElementById('caseInput');
-        const submitCaseButton = document.getElementById('submitCaseButton');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const statusMessage = document.getElementById('statusMessage');
-        const aiAnswer = document.getElementById('aiAnswer');
-        const copyResponseButton = document.getElementById('copyResponseButton');
-        const errorMessage = document.getElementById('errorMessage');
+    /**
+     * Securely fetches data from the Apps Script proxy with exponential backoff.
+     * @param {string} sheetName - The name of the sheet to fetch.
+     * @param {string} range - The range of the data (e.g., 'A:G').
+     * @param {number} retries - Number of retries (default 3).
+     * @param {number} delay - Initial delay in milliseconds (default 1000).
+     */
+    async function fetchDataWithRetry(sheetName, range, retries = 3, delay = 1000) {
+        try {
+            // Check if placeholders are replaced before attempting to fetch
+            if (APPS_SCRIPT_URL.includes('YOUR_APPS_SCRIPT_URL_HERE') || SPREADSHEET_ID.includes('YOUR_SHEET_ID')) {
+                throw new Error('Please replace the placeholder values for APPS_SCRIPT_URL and SPREADSHEET_ID in the code.');
+            }
+            
+            var encodedSheetName = encodeURIComponent(sheetName);
+            var url = `${APPS_SCRIPT_URL}?spreadsheetId=${SPREADSHEET_ID}&sheetName=${encodedSheetName}&range=${range}`;
+            console.log(`Attempting to fetch data for sheet '${sheetName}'...`);
 
-        // Pop-up
-        const irrelevantQuestionPopup = document.getElementById('irrelevantQuestionPopup');
-        const irrelevantMessage = document.getElementById('irrelevantMessage');
-        const closeIrrelevantPopup = document.getElementById('closeIrrelevantPopup');
-
-        let warehouseKBText = ''; // Stores the fetched knowledge base text
-
-        // --- Utility Functions ---
-
-        function showLoading(message) {
-            statusMessage.textContent = message;
-            statusMessage.classList.remove('hidden');
-            loadingSpinner.style.display = 'block';
-            submitCaseButton.disabled = true;
-            copyResponseButton.classList.add('hidden');
-            errorMessage.classList.add('hidden');
-            aiAnswer.innerHTML = `<p class="transition-colors duration-500" style="color: var(--placeholder-color);">Generating response...</p>`;
-        }
-
-        function hideLoading() {
-            statusMessage.classList.add('hidden');
-            loadingSpinner.style.display = 'none';
-            submitCaseButton.disabled = false;
-        }
-
-        function showPopup(popupElement) {
-            popupElement.classList.add('show');
-        }
-
-        function hidePopup(popupElement) {
-            popupElement.classList.remove('show');
-        }
-
-        function displayError(message) {
-            errorMessage.textContent = message;
-            errorMessage.classList.remove('hidden');
-            copyResponseButton.classList.add('hidden');
-        }
-
-        function showIrrelevantPopup(message) {
-            irrelevantMessage.textContent = message;
-            showPopup(irrelevantQuestionPopup);
-        }
-
-        function copyToClipboard(text) {
-            if (document.execCommand) {
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                document.body.appendChild(textarea);
-                textarea.select();
+            for (var i = 0; i < retries; i++) {
                 try {
-                    document.execCommand('copy');
-                    // Optionally, show a temporary "Copied!" message
-                    copyResponseButton.textContent = 'Copied!';
-                    setTimeout(() => {
-                        copyResponseButton.textContent = 'Copy Response';
-                    }, 2000);
-                } catch (err) {
-                    console.error('Failed to copy text: ', err);
-                    // Fallback for rare cases where execCommand fails
-                    const fallbackMessage = 'Failed to copy text automatically. Please select the text in the AI Response box and copy it manually (Ctrl+C or Cmd+C).';
-                    alert(fallbackMessage);
-                }
-                document.body.removeChild(textarea);
-            } else {
-                // Fallback for browsers that don't support document.execCommand
-                const fallbackMessage = 'Your browser does not support automatic clipboard copy. Please select the text in the AI Response box and copy it manually (Ctrl+C or Cmd+C).';
-                alert(fallbackMessage);
-            }
-        }
-
-        // --- Theme Toggle ---
-        themeToggle.addEventListener('click', () => {
-            document.documentElement.classList.toggle('dark');
-            document.documentElement.classList.toggle('light');
-            const isDarkMode = document.documentElement.classList.contains('dark');
-            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-            updateThemeIcons(isDarkMode);
-        });
-
-        function updateThemeIcons(isDarkMode) {
-            if (isDarkMode) {
-                sunIcon.classList.add('hidden');
-                moonIcon.classList.remove('hidden');
-            } else {
-                sunIcon.classList.remove('hidden');
-                moonIcon.classList.add('hidden');
-            }
-        }
-
-        // Apply saved theme on load
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.classList.add(savedTheme);
-        updateThemeIcons(savedTheme === 'dark');
-
-        // --- Fetch Knowledge Base ---
-        async function fetchWarehouseKB() {
-            showLoading('Fetching knowledge base from Warehouse-KB...');
-            try {
-                const response = await fetch(WAREHOUSE_KB_URL);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const htmlText = await response.text();
-
-                // Parse HTML to extract relevant text content
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlText, 'text/html');
-                // Target the specific content area if possible, otherwise use body
-                // Assuming the rules are within a readable text block on the KB page
-                const contentElement = doc.querySelector('#main-content') || doc.querySelector('.content-area') || doc.querySelector('body');
-                
-                if (contentElement) {
-                    warehouseKBText = contentElement.textContent || '';
-                    // Aggressive cleanup: remove excessive newlines, tabs, and multiple spaces
-                    warehouseKBText = warehouseKBText.replace(/[\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
-                    
-                    if (warehouseKBText.length < 200) { // Increased minimum length check
-                         throw new Error("Extracted content is too short or sparse. Ensure the KB website has substantial, visible text content.");
+                    var response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
                     }
-                    statusMessage.textContent = 'Knowledge base loaded. Ready for your case scenario!';
-                    submitCaseButton.disabled = false; // Enable submit button once KB is loaded
+                    var data = await response.json();
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    return data.values;
+                } catch (error) {
+                    console.error(`Attempt ${i + 1} failed for ${sheetName}: ${error.message}`);
+                    if (i < retries - 1) {
+                        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    function showMessage(message, isError) {
+        var messageBox = document.getElementById('message-box');
+        messageBox.textContent = message;
+        messageBox.className = `fixed top-5 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-lg z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
+        messageBox.classList.remove('hidden');
+        setTimeout(function() {
+            messageBox.classList.add('hidden');
+        }, 3000);
+    }
+    
+    // --- Data Loading and Initial Rendering ---
+    async function initApp() {
+        try {
+            // Show loading spinner
+            loadingState.classList.remove('hidden');
+            summarySection.classList.add('hidden');
+            chartSection.classList.add('hidden');
+            teamSection.classList.add('hidden');
+            agentSection.classList.add('hidden');
+            bottomPerformersSection.classList.add('hidden');
+
+            var agentData = await fetchDataWithRetry('Agent Wise Report', 'A1:AJ500');
+            var daywiseData = await fetchDataWithRetry('Date Wise MTD', 'A1:M500');
+            var teamData = await fetchDataWithRetry('Team Wise Report', 'A1:I500');
+            
+            rawData = {
+                agentRaw: agentData,
+                dateRaw: daywiseData,
+                teamRaw: teamData
+            };
+            
+            renderDashboard();
+
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            loadingState.innerHTML = `
+                <div class="p-6 bg-red-100 text-red-800 rounded-lg shadow-md max-w-xl mx-auto mt-10 text-center">
+                    <p class="font-bold text-xl mb-2">Failed to load data.</p>
+                    <p class="mb-4">Please check the following:</p>
+                    <ul class="text-left list-disc list-inside space-y-2 mb-4">
+                        <li>Is your Google Apps Script correctly deployed?</li>
+                        <li>Is the \`SPREADSHEET_ID\` and \`APPS_SCRIPT_URL\` correct?</li>
+                    </ul>
+                    <p class="mt-4 font-mono text-sm break-all">Detailed Error: ${error.message}</p>
+                </div>
+            `;
+        }
+    }
+    
+    function renderDashboard() {
+        if (!rawData.agentRaw || !rawData.dateRaw || !rawData.teamRaw) {
+            return; // No data to render
+        }
+
+        var startDateInput = document.getElementById('start-date');
+        var endDateInput = document.getElementById('end-date');
+        var startDate = startDateInput.value ? new Date(startDateInput.value) : null;
+        var endDate = endDateInput.value ? new Date(endDateInput.value) : null;
+
+        // --- Process Agent Wise Report ---
+        var agentHeaderRow = rawData.agentRaw[1];
+        var dateHeaders = rawData.agentRaw[0].slice(3);
+        var agents = rawData.agentRaw.slice(2)
+            .map(function(row) {
+                if (!row[0]) return null;
+                
+                var totalSample = 0;
+                var totalCorrect = 0;
+                var totalError = 0;
+
+                for (var i = 0; i < dateHeaders.length; i += 4) {
+                    var dateHeader = dateHeaders[i];
+                    if (typeof dateHeader === 'string' && (dateHeader.startsWith('MTD') || dateHeader.includes('Total'))) {
+                        continue;
+                    }
+                    
+                    var currentDate = new Date(dateHeader);
+                    if ((!startDate || currentDate >= startDate) && (!endDate || currentDate <= endDate)) {
+                        totalSample += parseInt(row[3 + i], 10) || 0;
+                        totalCorrect += parseInt(row[3 + i + 1], 10) || 0;
+                        totalError += parseInt(row[3 + i + 2], 10) || 0;
+                    }
+                }
+                
+                var agent = {
+                    'Agent ID': row[0],
+                    'Team Lead': row[1],
+                    'Status': row[2],
+                    'Sample': totalSample,
+                    'Correct': totalCorrect,
+                    'Error': totalError
+                };
+                agent.Accuracy = agent.Sample > 0 ? (agent.Correct / agent.Sample) * 100 : 0;
+                return agent;
+            })
+            .filter(function(a) { return a && a.Status === 'Active'; });
+        
+        // --- Process Date Wise MTD Report ---
+        var daily = rawData.dateRaw.slice(3)
+            .map(function(row) {
+                var dateValue = row[0];
+                var dateObj;
+                if (typeof dateValue === 'string') {
+                    dateObj = new Date(dateValue);
+                } else if (typeof dateValue === 'number' && !isNaN(dateValue)) {
+                    dateObj = new Date(Date.UTC(0, 0, dateValue - 1));
                 } else {
-                    throw new Error('Could not find main content on the Warehouse KB website. Check the HTML structure.');
+                    return null;
                 }
-            } catch (error) {
-                console.error('Error fetching/parsing KB:', error);
-                displayError(`Failed to load knowledge base: ${error.message}. Please ensure the KB URL is correct and accessible.`);
-                statusMessage.textContent = 'Failed to load knowledge base.';
-            } finally {
-                hideLoading();
-            }
-        }
+                
+                if (isNaN(dateObj.getTime())) return null;
+                
+                var formattedDate = dateObj.toISOString().slice(0, 10);
+                return {
+                    Date: formattedDate,
+                    Internal_QA_Accuracy: parseFloat(row[4]) * 100 || 0,
+                    BPO_QA_Accuracy: parseFloat(row[8]) * 100 || 0,
+                    MTD_Accuracy: parseFloat(row[12]) * 100 || 0
+                };
+            })
+            .filter(function(d) { return d !== null; });
 
-        // --- Gemini API Call ---
-        async function callGeminiApi(prompt, contextText) {
-            let chatHistory = [];
-            chatHistory.push({
-                role: "user",
-                parts: [{ text: `You are an expert in warehouse operations and rules. Based ONLY on the following rules book content, analyze the provided case scenario.
-                
-                Rules Book Content:
-                """
-                ${contextText}
-                """
-                
-                Case Scenario:
-                """
-                ${prompt}
-                """
-                
-                Provide your judgment/response. You MUST include the exact relevant rule(s) from the "Rules Book Content" that support your answer. If the information is not available in the rules book or the question is irrelevant to the rules, clearly state that and do not make up information. Format your response clearly, first stating your judgment, then listing the supporting rules. Example: "Judgment: [Your judgment]. Relevant Rule(s): [Exact rule text from KB]." If no rules are found, say: "Information Not Found: The provided rules book does not contain specific information for this case scenario. Please refine your question or consult other resources."` }]
+        var filteredDaily = daily.filter(function(d) {
+            var date = new Date(d.Date);
+            return (!startDate || date >= startDate) && (!endDate || date <= endDate);
+        });
+        
+        // --- Process Team Wise Report ---
+        var teamPerformanceArray = [];
+        var teamHeaderRow = rawData.teamRaw[1];
+        var dataStartRowIndex = 2;
+
+        var teamBlocks = [];
+        rawData.teamRaw[0].forEach(function(cell, colIndex) {
+            if (cell && typeof cell === 'string' && cell.startsWith('Team ')) {
+                teamBlocks.push({
+                    name: cell.replace('Team ', ''),
+                    colStart: colIndex
+                });
+            }
+        });
+        
+        teamBlocks.forEach(function(teamBlock) {
+            var sampleIndex = teamHeaderRow.indexOf('Sample', teamBlock.colStart);
+            var correctIndex = teamHeaderRow.indexOf('Correct', teamBlock.colStart);
+            
+            var teamSample = 0;
+            var teamCorrect = 0;
+            
+            rawData.teamRaw.slice(dataStartRowIndex).forEach(function(row) {
+                if (row[teamBlock.colStart]) {
+                    teamSample += parseInt(row[sampleIndex], 10) || 0;
+                    teamCorrect += parseInt(row[correctIndex], 10) || 0;
+                }
             });
 
-            const payload = { contents: chatHistory };
-            const apiKey = "AIzaSyAJVjNj-v2IfXbNd1fILPJFov40Qfr3lW4"; // Your personal API key
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+            var accuracy = teamSample > 0 ? (teamCorrect / teamSample) * 100 : 0;
+            teamPerformanceArray.push({ 'Team Lead': teamBlock.name, 'Accuracy': accuracy, 'Sample Size': teamSample });
+        });
+        teamPerformanceArray.sort(function(a, b) { return b.Accuracy - a.Accuracy; });
 
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+        // --- Calculations ---
+        var totalSample = agents.reduce(function(sum, a) { return sum + a.Sample; }, 0);
+        var totalCorrect = agents.reduce(function(sum, a) { return sum + a.Correct; }, 0);
+        var totalError = agents.reduce(function(sum, a) { return sum + a.Error; }, 0);
+        var overallAccuracy = totalSample > 0 ? (totalCorrect / totalSample) * 100 : 0;
+        
+        var bottomPerformers = agents.filter(function(a) { return a.Sample > 0 && a.Accuracy < 96; }).sort(function(a, b) { return a.Accuracy - b.Accuracy; });
+        
+        // --- Render Dashboard UI ---
+        document.getElementById('overall-accuracy').textContent = overallAccuracy.toFixed(2) + '%';
+        document.getElementById('total-audits').textContent = totalSample;
+        document.getElementById('total-correct').textContent = totalCorrect;
+        document.getElementById('total-errors').textContent = totalError;
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`API error: ${errorData.error.message || response.statusText}`);
-            }
+        // Render All Agents Table
+        var allAgentsBody = document.getElementById('all-agents-body');
+        allAgentsBody.innerHTML = '';
+        agents.forEach(function(agent) {
+            var row = allAgentsBody.insertRow();
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">${agent['Agent ID']}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${agent.Status}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${agent.Sample}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${agent.Correct}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${agent.Error}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${agent.Accuracy.toFixed(2)}%</td>
+            `;
+        });
 
-            const result = await response.json();
-            if (result.candidates && result.candidates.length > 0 &&
-                result.candidates[0].content && result.candidates[0].content.parts &&
-                result.candidates[0].content.parts.length > 0) {
-                return result.candidates[0].content.parts[0].text;
-            } else {
-                throw new Error('No content received from Gemini API.');
-            }
+        // Render Team Performance Table
+        var teamBody = document.getElementById('team-performance-body');
+        teamBody.innerHTML = '';
+        teamPerformanceArray.forEach(function(team) {
+            var row = teamBody.insertRow();
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">${team['Team Lead']}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${team.Accuracy.toFixed(2)}%</td>
+                <td class="px-6 py-4 whitespace-nowrap">${team['Sample Size']}</td>
+            `;
+        });
+
+        // Render Bottom Agents Table
+        var bottomAgentsBody = document.getElementById('bottom-agents-body');
+        bottomAgentsBody.innerHTML = '';
+        bottomPerformers.forEach(function(agent, index) {
+            var row = bottomAgentsBody.insertRow();
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">${index + 1}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${agent['Agent ID']}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${agent.Accuracy.toFixed(2)}%</td>
+                <td class="px-6 py-4 whitespace-nowrap">${agent.Sample}</td>
+            `;
+        });
+
+        // Render Daily Trend Chart
+        var ctx = document.getElementById('daily-accuracy-chart').getContext('2d');
+        if (myChart) {
+            myChart.destroy();
         }
-
-        // --- Event Listeners ---
-
-        submitCaseButton.addEventListener('click', async () => {
-            const userCaseScenario = caseInput.value.trim();
-
-            if (!warehouseKBText) {
-                displayError('Knowledge base not loaded. Please wait or refresh the page.');
-                return;
-            }
-            if (!userCaseScenario) {
-                displayError('Please enter a case scenario to get an AI response.');
-                return;
-            }
-
-            showLoading('Analyzing your case scenario...');
-            try {
-                const aiResponse = await callGeminiApi(userCaseScenario, warehouseKBText);
-                aiAnswer.textContent = aiResponse;
-                copyResponseButton.classList.remove('hidden');
-
-                // Check for irrelevant/difficult questions based on AI's response
-                const lowerCaseResponse = aiResponse.toLowerCase();
-                if (lowerCaseResponse.includes("information not found") ||
-                    lowerCaseResponse.includes("not available in the rules book") ||
-                    lowerCaseResponse.includes("cannot find relevant information") ||
-                    lowerCaseResponse.includes("irrelevant question") ||
-                    lowerCaseResponse.includes("not covered by the rules")) {
-                    showIrrelevantPopup("The AI could not find relevant rules for your scenario in the provided knowledge base. Please refine your question or check the rules content.");
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: filteredDaily.map(function(d) { return d.Date; }),
+                datasets: [
+                    {
+                        label: 'Internal QA Accuracy %',
+                        data: filteredDaily.map(function(d) { return d.Internal_QA_Accuracy; }),
+                        borderColor: 'rgb(59, 130, 246)',
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'BPO QA Accuracy %',
+                        data: filteredDaily.map(function(d) { return d.BPO_QA_Accuracy; }),
+                        borderColor: 'rgb(103, 126, 215)',
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'MTD Accuracy %',
+                        data: filteredDaily.map(function(d) { return d.MTD_Accuracy; }),
+                        borderColor: 'rgb(16, 185, 129)',
+                        tension: 0.1,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
                 }
-
-            } catch (error) {
-                console.error('Error getting AI response:', error);
-                displayError(`Failed to get AI response: ${error.message}`);
-                aiAnswer.textContent = 'An error occurred while fetching the AI response.';
-            } finally {
-                hideLoading();
             }
         });
+        
+        // Hide loading state and show the content
+        loadingState.classList.add('hidden');
+        summarySection.classList.remove('hidden');
+        chartSection.classList.remove('hidden');
+        teamSection.classList.remove('hidden');
+        agentSection.classList.remove('hidden');
+        bottomPerformersSection.classList.remove('hidden');
+    }
 
-        copyResponseButton.addEventListener('click', () => {
-            copyToClipboard(aiAnswer.textContent);
-        });
-
-        closeIrrelevantPopup.addEventListener('click', () => {
-            hidePopup(irrelevantQuestionPopup);
-        });
-
-        // --- Initial Setup ---
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchWarehouseKB(); // Start fetching KB on page load
-            submitCaseButton.disabled = true; // Disable until KB is loaded
-        });
-    </script>
+    // --- Event Listeners and Initial Load ---
+    applyFilterBtn.addEventListener('click', renderDashboard);
+    window.addEventListener('load', initApp);
+</script>
 </body>
 </html>
