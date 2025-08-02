@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse AI Manager</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.5s ease;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            background-image: linear-gradient(to bottom right, var(--bg-start-color), var(--bg-end-color));
+            background-attachment: fixed; /* Ensures gradient covers full page */
+        }
+
+        /* CSS Variables for Dynamic Colors */
+        :root {
+            /* Light Mode Defaults */
+            --bg-start-color: #e0f2fe; /* Light Blue 50 */
+            --bg-end-color: #f0f9ff; /* Light Blue 100 */
+            --container-bg: rgba(255, 255, 255, 0.95);
+            --section-bg: rgba(255, 255, 255, 0.85);
+            --border-color: rgba(226, 232, 240, 0.7);
+            --text-color: #1a202c;
+            --title-color: #0f172a;
+            --placeholder-color: #64748b;
+            --input-bg: rgba(255, 255, 255, 0.98);
+            --input-border-focus: #0ea5e9; /* Sky 500 */
+            --input-shadow-focus: rgba(14, 165, 233, 0.3);
+            --button-primary-bg: #0ea5e9; /* Sky 500 */
+            --button-primary-hover-bg: #0284c7; /* Sky 600 */
+            --button-text-color: white;
+            --copy-button-bg: #22c55e; /* Green 500 */
+            --copy-button-hover-bg: #16a34a; /* Green 600 */
+            --spinner-color: #0ea5e9;
+            --error-color: #dc2626;
+            --popup-bg: #ffffff;
+            --popup-text-color: #1e293b;
+        }
+
+        /* Dark Mode Overrides */
+        .dark {
+            --bg-start-color: #1a202c; /* Dark Blue Gray 900 */
+            --bg-end-color: #2d3748; /* Dark Blue Gray 800 */
+            --container-bg: rgba(30, 41, 59, 0.95); /* Slate 900 with transparency */
+            --section-bg: rgba(30, 41, 59, 0.85); /* Slate 900 with more transparency */
+            --border-color: rgba(71, 85, 105, 0.7); /* Slate 700 with transparency */
+            --text-color: #e2e8f0; /* Light text */
+            --title-color: #f8fafc; /* Very light text */
+            --placeholder-color: #a0aec0; /* Gray 400 */
+            --input-bg: rgba(30, 41, 59, 0.98);
+            --input-border-focus: #38b2ac; /* Teal 400 */
+            --input-shadow-focus: rgba(56, 178, 172, 0.4);
+            --button-primary-bg: #38b2ac; /* Teal 400 */
+            --button-primary-hover-bg: #319795; /* Teal 500 */
+            --button-text-color: #1a202c; /* Dark text for contrast */
+            --copy-button-bg: #68d391; /* Green 400 */
+            --copy-button-hover-bg: #48bb78; /* Green 500 */
+            --spinner-color: #38b2ac;
+            --error-color: #fc8181;
+            --popup-bg: #2d3748;
+            --popup-text-color: #e2e8f0;
+        }
+
+        /* Apply variables */
+        .container {
+            background-color: var(--container-bg);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+        .section-box {
+            background-color: var(--section-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .section-title {
+            color: var(--title-color);
+        }
+        .info-text {
+            color: var(--placeholder-color);
+        }
+        .action-button {
+            background-color: var(--button-primary-bg);
+            color: var(--button-text-color);
+        }
+        .action-button:hover {
+            background-color: var(--button-primary-hover-bg);
+        }
+        textarea {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+        textarea::placeholder { /* Style placeholder text */
+            color: var(--placeholder-color);
+            opacity: 0.7; /* Make placeholder slightly less prominent */
+        }
+        textarea:focus {
+            border-color: var(--input-border-focus);
+            box-shadow: 0 0 0 3px var(--input-shadow-focus);
+        }
+        .result-area {
+            background-color: var(--section-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+        .status-message {
+            color: var(--placeholder-color);
+        }
+        .error-message {
+            color: var(--error-color);
+        }
+        .loading-spinner {
+            border-left-color: var(--spinner-color);
+        }
+        .copy-button {
+            background-color: var(--copy-button-bg);
+            color: var(--button-text-color); /* Use button text color for copy button */
+        }
+        .copy-button:hover {
+            background-color: var(--copy-button-hover-bg);
+        }
+
+        /* Pop-up styles */
+        .popup-content {
+            background-color: var(--popup-bg);
+            color: var(--popup-text-color);
+        }
+        .popup-header {
+            color: var(--title-color);
+        }
+        .popup-body p {
+            color: var(--popup-text-color); /* Ensure popup body text is readable */
+        }
+
+        /* General layout and component styles */
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 2.5rem;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-grow: 1;
+        }
+        .section-box {
+            width: 100%;
+            padding: 2rem;
+            border-radius: 12px;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 8px;
+            resize: vertical;
+            min-height: 150px; /* Increased min-height for more space */
+            font-size: 1rem;
+            line-height: 1.5; /* Improved line spacing */
+        }
+        .action-button {
+            padding: 0.85rem 2rem;
+            font-weight: 700;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+        }
+        .action-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .loading-spinner {
+            border: 5px solid;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-top: 2rem;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result-area {
+            min-height: 150px; /* Increased min-height for more space */
+            text-align: left;
+            line-height: 1.7; /* Increased line height for readability */
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+        .copy-button {
+            padding: 0.6rem 1.2rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            margin-top: 1rem;
+            align-self: flex-end; /* Align to the right within flex column */
+        }
+        .copy-button:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Pop-up (formerly modal) styles */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .popup-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .popup-content {
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            width: 90%;
+            max-width: 400px;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        .popup-overlay.show .popup-content {
+            transform: translateY(0);
+        }
+        .popup-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .popup-body {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .popup-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .popup-actions button {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        .popup-actions .close-button {
+            background-color: #ef4444; /* Red 500 */
+            color: white;
+        }
+        .popup-actions .close-button:hover {
+            background-color: #dc2626; /* Red 600 */
+        }
+    </style>
+</head>
+<body class="p-6">
+    <div class="container">
+        <header class="w-full flex justify-between items-center mb-8">
+            <h1 class="text-4xl font-extrabold transition-colors duration-500" style="color: var(--title-color);">Warehouse AI Manager</h1>
+            <button id="themeToggle" class="p-2 rounded-full transition-colors duration-300">
+                <svg id="sunIcon" class="w-6 h-6 text-yellow-500 hidden" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 00-1.414 1.414l.707.707a1 1 0 101.414-1.414l-.707-.707zM10 18a1 1 0 01-1 1v1a1 1 0 102 0v-1a1 1 0 01-1-1zM3.536 5.05a1 1 0 00-1.414-1.414l-.707.707a1 1 0 101.414 1.414l.707-.707zm12.728 0l-.707-.707a1 1 0 00-1.414 1.414l.707.707a1 1 0 001.414-1.414zM7 10a3 3 0 11-6 0 3 3 0 016 0zm-2 0a1 1 0 102 0 1 1 0 00-2 0zm-2 0a1 1 0 102 0 1 1 0 00-2 0z"></path>
+                </svg>
+                <svg id="moonIcon" class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+                </svg>
+            </button>
+        </header>
+
+        <p class="text-lg mb-8 text-center transition-colors duration-500" style="color: var(--text-color);">
+            Get AI-powered insights for your warehouse case scenarios based on the official rules.
+        </p>
+
+        <!-- Case Scenario Input Box -->
+        <div class="section-box mb-8">
+            <h2 class="section-title">Case Scenario</h2>
+            <p class="info-text">Describe the situation or keywords to get a relevant AI response.</p>
+            <textarea id="caseInput" placeholder="E.g., 'customer provided fake shipping label' or 'packing time inconsistent'"></textarea>
+            <button id="submitCaseButton" class="action-button mt-4">Get AI Response</button>
+        </div>
+
+        <div id="loadingSpinner" class="loading-spinner"></div>
+        <div id="statusMessage" class="status-message hidden mt-4"></div>
+
+        <!-- AI Response Display Box -->
+        <div class="section-box mt-8 flex flex-col">
+            <h2 class="section-title">AI Response</h2>
+            <div id="aiAnswer" class="result-area">
+                <p class="transition-colors duration-500" style="color: var(--placeholder-color);">Your AI-generated answer will appear here.</p>
+            </div>
+            <button id="copyResponseButton" class="copy-button hidden">Copy Response</button>
+            <div id="errorMessage" class="error-message hidden mt-4"></div>
+        </div>
+    </div>
+
+    <!-- Irrelevant Question / Error Pop-up -->
+    <div id="irrelevantQuestionPopup" class="popup-overlay">
+        <div class="popup-content">
+            <div class="popup-header">Information Not Found</div>
+            <div class="popup-body">
+                <p id="irrelevantMessage"></p>
+            </div>
+            <div class="popup-actions">
+                <button id="closeIrrelevantPopup" class="close-button">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        const WAREHOUSE_KB_URL = 'https://mamunabdullaal.github.io/Warehouse-KB/';
+        const GEMINI_MODEL = 'gemini-2.0-flash'; // Using gemini-2.0-flash for multimodal capabilities
+
+        // DOM Elements
+        const themeToggle = document.getElementById('themeToggle');
+        const sunIcon = document.getElementById('sunIcon');
+        const moonIcon = document.getElementById('moonIcon');
+        const caseInput = document.getElementById('caseInput');
+        const submitCaseButton = document.getElementById('submitCaseButton');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const statusMessage = document.getElementById('statusMessage');
+        const aiAnswer = document.getElementById('aiAnswer');
+        const copyResponseButton = document.getElementById('copyResponseButton');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Pop-up
+        const irrelevantQuestionPopup = document.getElementById('irrelevantQuestionPopup');
+        const irrelevantMessage = document.getElementById('irrelevantMessage');
+        const closeIrrelevantPopup = document.getElementById('closeIrrelevantPopup');
+
+        let warehouseKBText = ''; // Stores the fetched knowledge base text
+
+        // --- Utility Functions ---
+
+        function showLoading(message) {
+            statusMessage.textContent = message;
+            statusMessage.classList.remove('hidden');
+            loadingSpinner.style.display = 'block';
+            submitCaseButton.disabled = true;
+            copyResponseButton.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            aiAnswer.innerHTML = `<p class="transition-colors duration-500" style="color: var(--placeholder-color);">Generating response...</p>`;
+        }
+
+        function hideLoading() {
+            statusMessage.classList.add('hidden');
+            loadingSpinner.style.display = 'none';
+            submitCaseButton.disabled = false;
+        }
+
+        function showPopup(popupElement) {
+            popupElement.classList.add('show');
+        }
+
+        function hidePopup(popupElement) {
+            popupElement.classList.remove('show');
+        }
+
+        function displayError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+            copyResponseButton.classList.add('hidden');
+        }
+
+        function showIrrelevantPopup(message) {
+            irrelevantMessage.textContent = message;
+            showPopup(irrelevantQuestionPopup);
+        }
+
+        function copyToClipboard(text) {
+            if (document.execCommand) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    // Optionally, show a temporary "Copied!" message
+                    copyResponseButton.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyResponseButton.textContent = 'Copy Response';
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    // Fallback for rare cases where execCommand fails
+                    const fallbackMessage = 'Failed to copy text automatically. Please select the text in the AI Response box and copy it manually (Ctrl+C or Cmd+C).';
+                    alert(fallbackMessage);
+                }
+                document.body.removeChild(textarea);
+            } else {
+                // Fallback for browsers that don't support document.execCommand
+                const fallbackMessage = 'Your browser does not support automatic clipboard copy. Please select the text in the AI Response box and copy it manually (Ctrl+C or Cmd+C).';
+                alert(fallbackMessage);
+            }
+        }
+
+        // --- Theme Toggle ---
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            document.documentElement.classList.toggle('light');
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+            updateThemeIcons(isDarkMode);
+        });
+
+        function updateThemeIcons(isDarkMode) {
+            if (isDarkMode) {
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            } else {
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            }
+        }
+
+        // Apply saved theme on load
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.classList.add(savedTheme);
+        updateThemeIcons(savedTheme === 'dark');
+
+        // --- Fetch Knowledge Base ---
+        async function fetchWarehouseKB() {
+            showLoading('Fetching knowledge base from Warehouse-KB...');
+            try {
+                const response = await fetch(WAREHOUSE_KB_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const htmlText = await response.text();
+
+                // Parse HTML to extract relevant text content
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+                // Target the specific content area if possible, otherwise use body
+                // Assuming the rules are within a readable text block on the KB page
+                const contentElement = doc.querySelector('#main-content') || doc.querySelector('.content-area') || doc.querySelector('body');
+                
+                if (contentElement) {
+                    warehouseKBText = contentElement.textContent || '';
+                    // Aggressive cleanup: remove excessive newlines, tabs, and multiple spaces
+                    warehouseKBText = warehouseKBText.replace(/[\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+                    
+                    if (warehouseKBText.length < 200) { // Increased minimum length check
+                         throw new Error("Extracted content is too short or sparse. Ensure the KB website has substantial, visible text content.");
+                    }
+                    statusMessage.textContent = 'Knowledge base loaded. Ready for your case scenario!';
+                    submitCaseButton.disabled = false; // Enable submit button once KB is loaded
+                } else {
+                    throw new Error('Could not find main content on the Warehouse KB website. Check the HTML structure.');
+                }
+            } catch (error) {
+                console.error('Error fetching/parsing KB:', error);
+                displayError(`Failed to load knowledge base: ${error.message}. Please ensure the KB URL is correct and accessible.`);
+                statusMessage.textContent = 'Failed to load knowledge base.';
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // --- Gemini API Call ---
+        async function callGeminiApi(prompt, contextText) {
+            let chatHistory = [];
+            chatHistory.push({
+                role: "user",
+                parts: [{ text: `You are an expert in warehouse operations and rules. Based ONLY on the following rules book content, analyze the provided case scenario.
+                
+                Rules Book Content:
+                """
+                ${contextText}
+                """
+                
+                Case Scenario:
+                """
+                ${prompt}
+                """
+                
+                Provide your judgment/response. You MUST include the exact relevant rule(s) from the "Rules Book Content" that support your answer. If the information is not available in the rules book or the question is irrelevant to the rules, clearly state that and do not make up information. Format your response clearly, first stating your judgment, then listing the supporting rules. Example: "Judgment: [Your judgment]. Relevant Rule(s): [Exact rule text from KB]." If no rules are found, say: "Information Not Found: The provided rules book does not contain specific information for this case scenario. Please refine your question or consult other resources."` }]
+            });
+
+            const payload = { contents: chatHistory };
+            const apiKey = "AIzaSyAJVjNj-v2IfXbNd1fILPJFov40Qfr3lW4"; // Your personal API key
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`API error: ${errorData.error.message || response.statusText}`);
+            }
+
+            const result = await response.json();
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                throw new Error('No content received from Gemini API.');
+            }
+        }
+
+        // --- Event Listeners ---
+
+        submitCaseButton.addEventListener('click', async () => {
+            const userCaseScenario = caseInput.value.trim();
+
+            if (!warehouseKBText) {
+                displayError('Knowledge base not loaded. Please wait or refresh the page.');
+                return;
+            }
+            if (!userCaseScenario) {
+                displayError('Please enter a case scenario to get an AI response.');
+                return;
+            }
+
+            showLoading('Analyzing your case scenario...');
+            try {
+                const aiResponse = await callGeminiApi(userCaseScenario, warehouseKBText);
+                aiAnswer.textContent = aiResponse;
+                copyResponseButton.classList.remove('hidden');
+
+                // Check for irrelevant/difficult questions based on AI's response
+                const lowerCaseResponse = aiResponse.toLowerCase();
+                if (lowerCaseResponse.includes("information not found") ||
+                    lowerCaseResponse.includes("not available in the rules book") ||
+                    lowerCaseResponse.includes("cannot find relevant information") ||
+                    lowerCaseResponse.includes("irrelevant question") ||
+                    lowerCaseResponse.includes("not covered by the rules")) {
+                    showIrrelevantPopup("The AI could not find relevant rules for your scenario in the provided knowledge base. Please refine your question or check the rules content.");
+                }
+
+            } catch (error) {
+                console.error('Error getting AI response:', error);
+                displayError(`Failed to get AI response: ${error.message}`);
+                aiAnswer.textContent = 'An error occurred while fetching the AI response.';
+            } finally {
+                hideLoading();
+            }
+        });
+
+        copyResponseButton.addEventListener('click', () => {
+            copyToClipboard(aiAnswer.textContent);
+        });
+
+        closeIrrelevantPopup.addEventListener('click', () => {
+            hidePopup(irrelevantQuestionPopup);
+        });
+
+        // --- Initial Setup ---
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchWarehouseKB(); // Start fetching KB on page load
+            submitCaseButton.disabled = true; // Disable until KB is loaded
+        });
+    </script>
+</body>
+</html>
