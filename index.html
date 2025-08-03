@@ -8,6 +8,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -15,17 +19,19 @@
                     fontFamily: {
                         'sans': ['Inter', 'sans-serif'],
                     },
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#818CF8',
+                    }
                 }
             }
         }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         body {
             font-family: 'Inter', sans-serif;
         }
-
         .table-container {
             max-height: 400px;
             overflow-y: auto;
@@ -36,13 +42,11 @@
             border-collapse: collapse;
             width: 100%;
         }
-
         th, td {
             padding: 12px 16px;
             text-align: left;
             white-space: nowrap;
         }
-
         thead th {
             background-color: #f9fafb;
             color: #4b5563;
@@ -51,11 +55,9 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
-
         tbody tr:nth-child(even) {
             background-color: #f3f4f6;
         }
-
         /* Simple spinning animation for the loader */
         @keyframes spin {
             from {
@@ -68,77 +70,263 @@
         .animate-spin-slow {
             animation: spin 1.5s linear infinite;
         }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 2% auto;
+            padding: 0;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .modal-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to right, #4F46E5, #818CF8);
+            color: white;
+            border-radius: 16px 16px 0 0;
+        }
+        .modal-body {
+            padding: 30px;
+        }
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .close:hover {
+            transform: scale(1.1);
+        }
+        /* Card hover effects */
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* Gradient backgrounds */
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .gradient-card {
+            background: linear-gradient(to bottom right, #ffffff, #f9fafb);
+        }
+        /* Button animations */
+        .btn-animate {
+            transition: all 0.3s ease;
+        }
+        .btn-animate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        /* Print styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .modal-content, .modal-content * {
+                visibility: visible;
+            }
+            .modal-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                max-width: 100%;
+                margin: 0;
+                box-shadow: none;
+            }
+            .modal-header, .modal-footer {
+                display: none;
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 p-4 sm:p-8">
-
+<body class="bg-gray-50 text-gray-800 p-4 sm:p-8">
     <!-- Message box for errors or success -->
     <div id="message-box" class="fixed top-5 left-1/2 -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50 hidden"></div>
+    
+    <!-- Modal for popup content -->
+    <div id="dataModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle" class="text-2xl font-bold">Data Preview</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content will be dynamically inserted here -->
+            </div>
+            <div class="modal-footer p-4 bg-gray-50 rounded-b-xl flex justify-end space-x-3">
+                <button id="exportPdfBtn" class="btn-animate bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center">
+                    <i class="fas fa-file-pdf mr-2"></i> Export as PDF
+                </button>
+                <button id="closeModalBtn" class="btn-animate bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg flex items-center">
+                    <i class="fas fa-times mr-2"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div class="max-w-7xl mx-auto space-y-8">
         <!-- Header Section -->
-        <div class="bg-gradient-to-r from-indigo-500 to-blue-600 text-white text-center p-8 rounded-xl shadow-xl">
-            <h1 class="text-3xl sm:text-4xl font-bold">CS Accuracy Dashboard</h1>
-            <p class="mt-2 text-md sm:text-lg">It Will Take Time To Load The Data.</p>
+        <div class="gradient-bg text-white text-center p-8 rounded-2xl shadow-xl">
+            <h1 class="text-3xl sm:text-4xl font-bold mb-2">CS Accuracy Dashboard</h1>
+            <p class="text-md sm:text-lg opacity-90">Data loaded directly from Google Sheet</p>
+            <div class="mt-4 flex justify-center space-x-4">
+                <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-3 flex items-center">
+                    <i class="fas fa-sync-alt mr-2"></i>
+                    <span id="lastUpdated">Last updated: Just now</span>
+                </div>
+            </div>
         </div>
-
+        
         <!-- Date Filter Section -->
-        <div class="bg-white p-6 rounded-xl shadow-md flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
-            <h2 class="text-xl font-semibold w-full md:w-auto">Filter by Date Range</h2>
-            <div class="flex items-center space-x-2 w-full md:w-auto">
-                <label for="start-date" class="font-medium text-gray-700">Start Date:</label>
-                <input type="date" id="start-date" class="p-2 border border-gray-300 rounded-md w-full md:w-auto">
+        <div class="gradient-card p-6 rounded-2xl shadow-md flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
+            <h2 class="text-xl font-semibold w-full md:w-auto flex items-center">
+                <i class="fas fa-calendar-alt text-primary mr-2"></i> Filter by Date Range
+            </h2>
+            <div class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full md:w-auto">
+                <div class="flex items-center space-x-2 w-full sm:w-auto">
+                    <label for="start-date" class="font-medium text-gray-700">Start Date:</label>
+                    <input type="date" id="start-date" class="p-2 border border-gray-300 rounded-md w-full sm:w-auto">
+                </div>
+                <div class="flex items-center space-x-2 w-full sm:w-auto">
+                    <label for="end-date" class="font-medium text-gray-700">End Date:</label>
+                    <input type="date" id="end-date" class="p-2 border border-gray-300 rounded-md w-full sm:w-auto">
+                </div>
+                <button id="apply-filter-btn" class="btn-animate bg-primary hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-lg flex items-center w-full sm:w-auto justify-center">
+                    <i class="fas fa-filter mr-2"></i> Apply Filter
+                </button>
             </div>
-            <div class="flex items-center space-x-2 w-full md:w-auto">
-                <label for="end-date" class="font-medium text-gray-700">End Date:</label>
-                <input type="date" id="end-date" class="p-2 border border-gray-300 rounded-md w-full md:w-auto">
-            </div>
-            <button id="apply-filter-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition-colors duration-300 w-full md:w-auto">
-                Apply Filter
-            </button>
         </div>
-
+        
         <!-- Dashboard Content -->
         <div id="dashboard-content" class="space-y-8">
             <!-- Loading State -->
             <div id="loading-state" class="flex flex-col justify-center items-center h-full text-gray-500 text-lg py-20">
-                <svg class="animate-spin-slow h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p class="mt-4">Loading data from Google Sheet...</p>
+                <div class="relative">
+                    <svg class="animate-spin-slow h-16 w-16 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <svg class="h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="mt-6 text-lg font-medium">Loading data from Google Sheet...</p>
             </div>
             
             <!-- Overall Summary -->
             <div id="summary-section" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 hidden">
-                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500">
-                    <div class="text-sm font-medium text-gray-500">Overall Accuracy</div>
-                    <div id="overall-accuracy" class="text-3xl font-bold text-gray-900 mt-1">--</div>
+                <div class="bg-white p-6 rounded-2xl shadow-md border-l-4 border-blue-500 card-hover">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="text-sm font-medium text-gray-500 mb-1">Overall Accuracy</div>
+                            <div id="overall-accuracy" class="text-3xl font-bold text-gray-900">--</div>
+                        </div>
+                        <div class="bg-blue-100 p-3 rounded-lg">
+                            <i class="fas fa-percentage text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <button class="mt-4 text-sm text-blue-600 font-medium flex items-center view-btn" data-section="summary">
+                        View Details <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-indigo-500">
-                    <div class="text-sm font-medium text-gray-500">Total Audits</div>
-                    <div id="total-audits" class="text-3xl font-bold text-gray-900 mt-1">--</div>
+                
+                <div class="bg-white p-6 rounded-2xl shadow-md border-l-4 border-indigo-500 card-hover">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="text-sm font-medium text-gray-500 mb-1">Total Audits</div>
+                            <div id="total-audits" class="text-3xl font-bold text-gray-900">--</div>
+                        </div>
+                        <div class="bg-indigo-100 p-3 rounded-lg">
+                            <i class="fas fa-clipboard-check text-indigo-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <button class="mt-4 text-sm text-indigo-600 font-medium flex items-center view-btn" data-section="summary">
+                        View Details <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-green-500">
-                    <div class="text-sm font-medium text-gray-500">Total Correct</div>
-                    <div id="total-correct" class="text-3xl font-bold text-gray-900 mt-1">--</div>
+                
+                <div class="bg-white p-6 rounded-2xl shadow-md border-l-4 border-green-500 card-hover">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="text-sm font-medium text-gray-500 mb-1">Total Correct</div>
+                            <div id="total-correct" class="text-3xl font-bold text-gray-900">--</div>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded-lg">
+                            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <button class="mt-4 text-sm text-green-600 font-medium flex items-center view-btn" data-section="summary">
+                        View Details <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500">
-                    <div class="text-sm font-medium text-gray-500">Total Errors</div>
-                    <div id="total-errors" class="text-3xl font-bold text-gray-900 mt-1">--</div>
+                
+                <div class="bg-white p-6 rounded-2xl shadow-md border-l-4 border-red-500 card-hover">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="text-sm font-medium text-gray-500 mb-1">Total Errors</div>
+                            <div id="total-errors" class="text-3xl font-bold text-gray-900">--</div>
+                        </div>
+                        <div class="bg-red-100 p-3 rounded-lg">
+                            <i class="fas fa-times-circle text-red-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <button class="mt-4 text-sm text-red-600 font-medium flex items-center view-btn" data-section="summary">
+                        View Details <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
                 </div>
             </div>
-
+            
             <!-- Daily Trend Chart -->
-            <div id="chart-section" class="bg-white p-6 rounded-xl shadow-md hidden">
-                <h2 class="text-xl font-semibold mb-4">Daily Accuracy Trend (MTD)</h2>
-                <canvas id="daily-accuracy-chart"></canvas>
+            <div id="chart-section" class="bg-white p-6 rounded-2xl shadow-md hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold flex items-center">
+                        <i class="fas fa-chart-line text-primary mr-2"></i> Daily Accuracy Trend (MTD)
+                    </h2>
+                    <button class="btn-animate bg-primary hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg flex items-center view-btn" data-section="chart">
+                        <i class="fas fa-expand mr-2"></i> View Full Screen
+                    </button>
+                </div>
+                <div class="relative" style="height: 400px;">
+                    <canvas id="daily-accuracy-chart"></canvas>
+                </div>
             </div>
-
+            
             <!-- Team Performance -->
-            <div id="team-section" class="bg-white p-6 rounded-xl shadow-md hidden">
-                <h2 class="text-xl font-semibold mb-4">Team Performance</h2>
-                <div class="table-container">
+            <div id="team-section" class="bg-white p-6 rounded-2xl shadow-md hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold flex items-center">
+                        <i class="fas fa-users text-primary mr-2"></i> Team Performance
+                    </h2>
+                    <button class="btn-animate bg-primary hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg flex items-center view-btn" data-section="team">
+                        <i class="fas fa-expand mr-2"></i> View Full Screen
+                    </button>
+                </div>
+                <div class="table-container rounded-lg border border-gray-200">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50 sticky top-0">
                             <tr>
@@ -155,9 +343,16 @@
             </div>
             
             <!-- Agent wise Report -->
-            <div id="agent-section" class="bg-white p-6 rounded-xl shadow-md hidden">
-                <h2 class="text-xl font-semibold mb-4">All Active Agents Report</h2>
-                <div class="table-container">
+            <div id="agent-section" class="bg-white p-6 rounded-2xl shadow-md hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold flex items-center">
+                        <i class="fas fa-user-tie text-primary mr-2"></i> All Active Agents Report
+                    </h2>
+                    <button class="btn-animate bg-primary hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg flex items-center view-btn" data-section="agent">
+                        <i class="fas fa-expand mr-2"></i> View Full Screen
+                    </button>
+                </div>
+                <div class="table-container rounded-lg border border-gray-200">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50 sticky top-0">
                             <tr>
@@ -175,11 +370,18 @@
                     </table>
                 </div>
             </div>
-
+            
             <!-- Bottom Performers -->
-            <div id="bottom-performers-section" class="bg-white p-6 rounded-xl shadow-md hidden">
-                <h2 class="text-xl font-semibold mb-4">Bottom Performers (Accuracy < 96%)</h2>
-                <div class="table-container">
+            <div id="bottom-performers-section" class="bg-white p-6 rounded-2xl shadow-md hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold flex items-center">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i> Bottom Performers (Accuracy < 96%)
+                    </h2>
+                    <button class="btn-animate bg-primary hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg flex items-center view-btn" data-section="bottom">
+                        <i class="fas fa-expand mr-2"></i> View Full Screen
+                    </button>
+                </div>
+                <div class="table-container rounded-lg border border-gray-200">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50 sticky top-0">
                             <tr>
@@ -217,9 +419,14 @@
     var agentSection = document.getElementById('agent-section');
     var bottomPerformersSection = document.getElementById('bottom-performers-section');
     var applyFilterBtn = document.getElementById('apply-filter-btn');
-
+    var modal = document.getElementById('dataModal');
+    var modalTitle = document.getElementById('modalTitle');
+    var modalBody = document.getElementById('modalBody');
+    var closeModalBtn = document.getElementById('closeModalBtn');
+    var exportPdfBtn = document.getElementById('exportPdfBtn');
+    var lastUpdated = document.getElementById('lastUpdated');
+    
     // --- Utility Functions ---
-
     /**
      * Securely fetches data from the Apps Script proxy with exponential backoff.
      * @param {string} sheetName - The name of the sheet to fetch.
@@ -237,7 +444,6 @@
             var encodedSheetName = encodeURIComponent(sheetName);
             var url = `${APPS_SCRIPT_URL}?spreadsheetId=${SPREADSHEET_ID}&sheetName=${encodedSheetName}&range=${range}`;
             console.log(`Attempting to fetch data for sheet '${sheetName}'...`);
-
             for (var i = 0; i < retries; i++) {
                 try {
                     var response = await fetch(url);
@@ -262,7 +468,7 @@
             throw error;
         }
     }
-
+    
     function showMessage(message, isError) {
         var messageBox = document.getElementById('message-box');
         messageBox.textContent = message;
@@ -271,6 +477,149 @@
         setTimeout(function() {
             messageBox.classList.add('hidden');
         }, 3000);
+    }
+    
+    // --- Modal Functions ---
+    function openModal(section) {
+        var content = '';
+        var title = '';
+        
+        switch(section) {
+            case 'summary':
+                title = 'Summary Statistics';
+                content = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-blue-500">
+                            <div class="text-sm font-medium text-gray-500">Overall Accuracy</div>
+                            <div class="text-3xl font-bold text-gray-900 mt-1">${document.getElementById('overall-accuracy').textContent}</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-indigo-500">
+                            <div class="text-sm font-medium text-gray-500">Total Audits</div>
+                            <div class="text-3xl font-bold text-gray-900 mt-1">${document.getElementById('total-audits').textContent}</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-green-500">
+                            <div class="text-sm font-medium text-gray-500">Total Correct</div>
+                            <div class="text-3xl font-bold text-gray-900 mt-1">${document.getElementById('total-correct').textContent}</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-red-500">
+                            <div class="text-sm font-medium text-gray-500">Total Errors</div>
+                            <div class="text-3xl font-bold text-gray-900 mt-1">${document.getElementById('total-errors').textContent}</div>
+                        </div>
+                    </div>
+                `;
+                break;
+                
+            case 'chart':
+                title = 'Daily Accuracy Trend (MTD)';
+                content = `
+                    <div class="bg-white p-4 rounded-lg">
+                        <canvas id="modal-chart" style="max-height: 500px;"></canvas>
+                    </div>
+                `;
+                break;
+                
+            case 'team':
+                title = 'Team Performance';
+                content = `
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team Lead</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Accuracy</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample Size</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${document.getElementById('team-performance-body').innerHTML}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                break;
+                
+            case 'agent':
+                title = 'All Active Agents Report';
+                content = `
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correct</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Error</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Accuracy</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${document.getElementById('all-agents-body').innerHTML}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                break;
+                
+            case 'bottom':
+                title = 'Bottom Performers (Accuracy < 96%)';
+                content = `
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Accuracy</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample Size</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${document.getElementById('bottom-agents-body').innerHTML}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                break;
+        }
+        
+        modalTitle.textContent = title;
+        modalBody.innerHTML = content;
+        modal.style.display = 'block';
+        
+        // If chart section, render the chart in modal
+        if (section === 'chart') {
+            setTimeout(function() {
+                var modalCtx = document.getElementById('modal-chart').getContext('2d');
+                var chartData = myChart.data;
+                var chartOptions = JSON.parse(JSON.stringify(myChart.options));
+                chartOptions.responsive = true;
+                chartOptions.maintainAspectRatio = false;
+                
+                new Chart(modalCtx, {
+                    type: 'bar',
+                    data: chartData,
+                    options: chartOptions
+                });
+            }, 100);
+        }
+    }
+    
+    function closeModal() {
+        modal.style.display = 'none';
+    }
+    
+    function exportToPdf() {
+        var element = modalBody;
+        var opt = {
+            margin: 10,
+            filename: 'CS-Accuracy-Report.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        
+        html2pdf().set(opt).from(element).save();
     }
     
     // --- Data Loading and Initial Rendering ---
@@ -283,7 +632,7 @@
             teamSection.classList.add('hidden');
             agentSection.classList.add('hidden');
             bottomPerformersSection.classList.add('hidden');
-
+            
             var agentData = await fetchDataWithRetry('Agent Wise Report', 'A1:AJ500');
             var daywiseData = await fetchDataWithRetry('Date Wise MTD', 'A1:M500');
             var teamData = await fetchDataWithRetry('Team Wise Report', 'A1:I500');
@@ -294,8 +643,11 @@
                 teamRaw: teamData
             };
             
+            // Update last updated time
+            var now = new Date();
+            lastUpdated.textContent = `Last updated: ${now.toLocaleString()}`;
+            
             renderDashboard();
-
         } catch (error) {
             console.error("Error fetching data:", error);
             loadingState.innerHTML = `
@@ -316,12 +668,12 @@
         if (!rawData.agentRaw || !rawData.dateRaw || !rawData.teamRaw) {
             return; // No data to render
         }
-
+        
         var startDateInput = document.getElementById('start-date');
         var endDateInput = document.getElementById('end-date');
         var startDate = startDateInput.value ? new Date(startDateInput.value) : null;
         var endDate = endDateInput.value ? new Date(endDateInput.value) : null;
-
+        
         // --- Process Agent Wise Report ---
         var agentHeaderRow = rawData.agentRaw[1];
         var dateHeaders = rawData.agentRaw[0].slice(3);
@@ -332,14 +684,21 @@
                 var totalSample = 0;
                 var totalCorrect = 0;
                 var totalError = 0;
-
                 for (var i = 0; i < dateHeaders.length; i += 4) {
                     var dateHeader = dateHeaders[i];
                     if (typeof dateHeader === 'string' && (dateHeader.startsWith('MTD') || dateHeader.includes('Total'))) {
                         continue;
                     }
                     
-                    var currentDate = new Date(dateHeader);
+                    // Parse date in YYYY/MM/DD format
+                    var currentDate;
+                    if (typeof dateHeader === 'string' && dateHeader.includes('/')) {
+                        var parts = dateHeader.split('/');
+                        currentDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                    } else {
+                        currentDate = new Date(dateHeader);
+                    }
+                    
                     if ((!startDate || currentDate >= startDate) && (!endDate || currentDate <= endDate)) {
                         totalSample += parseInt(row[3 + i], 10) || 0;
                         totalCorrect += parseInt(row[3 + i + 1], 10) || 0;
@@ -364,26 +723,26 @@
         var daily = rawData.dateRaw.slice(3)
             .map(function(row) {
                 var dateValue = row[0];
+                
                 var dateObj;
-                if (typeof dateValue === 'string') {
+                if (typeof dateValue === 'string' && dateValue.includes('/')) {
+                    // Parse date in YYYY/MM/DD format
+                    var parts = dateValue.split('/');
+                    dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                } else if (typeof dateValue === 'string') {
                     dateObj = new Date(dateValue);
                 } else if (typeof dateValue === 'number' && !isNaN(dateValue)) {
-                    // Correctly convert Excel-style serial date to a JavaScript date
-                    // Excel's epoch starts on 1899-12-30.
-                    // The number 25569 is the difference in days between 1970-01-01 and 1900-01-01.
-                    dateObj = new Date(Date.UTC(1899, 11, 30));
-                    dateObj.setDate(dateObj.getDate() + dateValue);
+                    dateObj = new Date(Date.UTC(0, 0, dateValue - 1));
                 } else {
                     return null;
                 }
                 
                 if (isNaN(dateObj.getTime())) return null;
                 
-                // === FIX: Use local date parts to avoid timezone-related off-by-one errors ===
-                var year = dateObj.getFullYear();
-                var month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                var day = String(dateObj.getDate()).padStart(2, '0');
-                var formattedDate = `${year}-${month}-${day}`;
+                // Format date as YYYY/MM/DD for display
+                var formattedDate = dateObj.getFullYear() + '/' + 
+                                   String(dateObj.getMonth() + 1).padStart(2, '0') + '/' + 
+                                   String(dateObj.getDate()).padStart(2, '0');
                 
                 var accuracy = parseFloat(row[12]) * 100 || 0;
                 
@@ -399,7 +758,7 @@
                 return null;
             })
             .filter(function(d) { return d !== null; });
-
+            
         var filteredDaily = daily.filter(function(d) {
             var date = new Date(d.Date);
             return (!startDate || date >= startDate) && (!endDate || date <= endDate);
@@ -420,7 +779,7 @@
             acc[teamLead]['Correct'] += agent['Correct'];
             return acc;
         }, {});
-
+        
         var teamPerformanceArray = Object.values(teamPerformanceMap).map(function(team) {
             var accuracy = team['Sample Size'] > 0 ? (team['Correct'] / team['Sample Size']) * 100 : 0;
             return {
@@ -429,6 +788,7 @@
                 'Sample Size': team['Sample Size']
             };
         });
+        
         teamPerformanceArray.sort(function(a, b) { return b.Accuracy - a.Accuracy; });
         
         // --- Calculations ---
@@ -444,7 +804,7 @@
         document.getElementById('total-audits').textContent = totalSample;
         document.getElementById('total-correct').textContent = totalCorrect;
         document.getElementById('total-errors').textContent = totalError;
-
+        
         // Render All Agents Table
         var allAgentsBody = document.getElementById('all-agents-body');
         allAgentsBody.innerHTML = '';
@@ -452,14 +812,25 @@
             var row = allAgentsBody.insertRow();
             row.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap">${agent['Agent ID']}</td>
-                <td class="px-6 py-4 whitespace-nowrap">${agent.Status}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        ${agent.Status}
+                    </span>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap">${agent.Sample}</td>
                 <td class="px-6 py-4 whitespace-nowrap">${agent.Correct}</td>
                 <td class="px-6 py-4 whitespace-nowrap">${agent.Error}</td>
-                <td class="px-6 py-4 whitespace-nowrap">${agent.Accuracy.toFixed(2)}%</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <span class="mr-2">${agent.Accuracy.toFixed(2)}%</span>
+                        <div class="w-16 bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: ${agent.Accuracy}%"></div>
+                        </div>
+                    </div>
+                </td>
             `;
         });
-
+        
         // Render Team Performance Table
         var teamBody = document.getElementById('team-performance-body');
         teamBody.innerHTML = '';
@@ -467,29 +838,48 @@
             var row = teamBody.insertRow();
             row.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap">${team['Team Lead']}</td>
-                <td class="px-6 py-4 whitespace-nowrap">${team.Accuracy.toFixed(2)}%</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <span class="mr-2">${team.Accuracy.toFixed(2)}%</span>
+                        <div class="w-16 bg-gray-200 rounded-full h-2">
+                            <div class="bg-indigo-600 h-2 rounded-full" style="width: ${team.Accuracy}%"></div>
+                        </div>
+                    </div>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap">${team['Sample Size']}</td>
             `;
         });
-
+        
         // Render Bottom Agents Table
         var bottomAgentsBody = document.getElementById('bottom-agents-body');
         bottomAgentsBody.innerHTML = '';
         bottomPerformers.forEach(function(agent, index) {
             var row = bottomAgentsBody.insertRow();
             row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap">${index + 1}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                        #${index + 1}
+                    </span>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap">${agent['Agent ID']}</td>
-                <td class="px-6 py-4 whitespace-nowrap">${agent.Accuracy.toFixed(2)}%</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <span class="mr-2 text-red-600 font-medium">${agent.Accuracy.toFixed(2)}%</span>
+                        <div class="w-16 bg-gray-200 rounded-full h-2">
+                            <div class="bg-red-600 h-2 rounded-full" style="width: ${agent.Accuracy}%"></div>
+                        </div>
+                    </div>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap">${agent.Sample}</td>
             `;
         });
-
+        
         // Render Daily Trend Chart
         var ctx = document.getElementById('daily-accuracy-chart').getContext('2d');
         if (myChart) {
             myChart.destroy();
         }
+        
         myChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -498,28 +888,32 @@
                     {
                         label: 'Internal QA Accuracy %',
                         data: filteredDaily.map(function(d) { return d.Internal_QA_Accuracy; }),
-                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
                         borderColor: 'rgb(59, 130, 246)',
-                        borderWidth: 1
+                        borderWidth: 1,
+                        borderRadius: 4
                     },
                     {
                         label: 'BPO QA Accuracy %',
                         data: filteredDaily.map(function(d) { return d.BPO_QA_Accuracy; }),
-                        backgroundColor: 'rgba(103, 126, 215, 0.5)',
+                        backgroundColor: 'rgba(103, 126, 215, 0.7)',
                         borderColor: 'rgb(103, 126, 215)',
-                        borderWidth: 1
+                        borderWidth: 1,
+                        borderRadius: 4
                     },
                     {
                         label: 'MTD Accuracy %',
                         data: filteredDaily.map(function(d) { return d.MTD_Accuracy; }),
-                        backgroundColor: 'rgba(16, 185, 129, 0.5)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
                         borderColor: 'rgb(16, 185, 129)',
-                        borderWidth: 1
+                        borderWidth: 1,
+                        borderRadius: 4
                     }
                 ]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     y: {
                         beginAtZero: true,
@@ -527,6 +921,39 @@
                         ticks: {
                             callback: function(value) {
                                 return value + '%';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 14
+                        },
+                        bodyFont: {
+                            size: 14
+                        },
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
                             }
                         }
                     }
@@ -542,11 +969,30 @@
         agentSection.classList.remove('hidden');
         bottomPerformersSection.classList.remove('hidden');
     }
-
+    
     // --- Event Listeners and Initial Load ---
     applyFilterBtn.addEventListener('click', renderDashboard);
+    
+    // Modal event listeners
+    document.querySelectorAll('.view-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            var section = this.getAttribute('data-section');
+            openModal(section);
+        });
+    });
+    
+    closeModalBtn.addEventListener('click', closeModal);
+    
+    window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+    
+    exportPdfBtn.addEventListener('click', exportToPdf);
+    
+    // Initialize the app when the page loads
     window.addEventListener('load', initApp);
 </script>
 </body>
 </html>
-
