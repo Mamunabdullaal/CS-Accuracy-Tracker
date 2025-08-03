@@ -368,20 +368,35 @@
                 if (typeof dateValue === 'string') {
                     dateObj = new Date(dateValue);
                 } else if (typeof dateValue === 'number' && !isNaN(dateValue)) {
-                    dateObj = new Date(Date.UTC(0, 0, dateValue - 1));
+                    // Correctly convert Excel-style serial date to a JavaScript date
+                    // Excel's epoch starts on 1899-12-30.
+                    // The number 25569 is the difference in days between 1970-01-01 and 1900-01-01.
+                    dateObj = new Date(Date.UTC(1899, 11, 30));
+                    dateObj.setDate(dateObj.getDate() + dateValue);
                 } else {
                     return null;
                 }
                 
                 if (isNaN(dateObj.getTime())) return null;
                 
-                var formattedDate = dateObj.toISOString().slice(0, 10);
-                return {
-                    Date: formattedDate,
-                    Internal_QA_Accuracy: parseFloat(row[4]) * 100 || 0,
-                    BPO_QA_Accuracy: parseFloat(row[8]) * 100 || 0,
-                    MTD_Accuracy: parseFloat(row[12]) * 100 || 0
-                };
+                // === FIX: Use local date parts to avoid timezone-related off-by-one errors ===
+                var year = dateObj.getFullYear();
+                var month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                var day = String(dateObj.getDate()).padStart(2, '0');
+                var formattedDate = `${year}-${month}-${day}`;
+                
+                var accuracy = parseFloat(row[12]) * 100 || 0;
+                
+                // === FIX: Only add data point if accuracy is greater than 0
+                if (accuracy > 0) {
+                    return {
+                        Date: formattedDate,
+                        Internal_QA_Accuracy: parseFloat(row[4]) * 100 || 0,
+                        BPO_QA_Accuracy: parseFloat(row[8]) * 100 || 0,
+                        MTD_Accuracy: accuracy
+                    };
+                }
+                return null;
             })
             .filter(function(d) { return d !== null; });
 
@@ -390,40 +405,32 @@
             return (!startDate || date >= startDate) && (!endDate || date <= endDate);
         });
         
-        // --- Process Team Wise Report ---
-        var teamPerformanceArray = [];
-        var teamHeaderRow = rawData.teamRaw[1];
-        var dataStartRowIndex = 2;
-
-        var teamBlocks = [];
-        rawData.teamRaw[0].forEach(function(cell, colIndex) {
-            if (cell && typeof cell === 'string' && cell.startsWith('Team ')) {
-                teamBlocks.push({
-                    name: cell.replace('Team ', ''),
-                    colStart: colIndex
-                });
+        // --- Process Team Performance ---
+        // === FIX: Calculate team performance by grouping active agents ===
+        var teamPerformanceMap = agents.reduce(function(acc, agent) {
+            var teamLead = agent['Team Lead'];
+            if (!acc[teamLead]) {
+                acc[teamLead] = {
+                    'Team Lead': teamLead,
+                    'Sample Size': 0,
+                    'Correct': 0
+                };
             }
-        });
-        
-        teamBlocks.forEach(function(teamBlock) {
-            var sampleIndex = teamHeaderRow.indexOf('Sample', teamBlock.colStart);
-            var correctIndex = teamHeaderRow.indexOf('Correct', teamBlock.colStart);
-            
-            var teamSample = 0;
-            var teamCorrect = 0;
-            
-            rawData.teamRaw.slice(dataStartRowIndex).forEach(function(row) {
-                if (row[teamBlock.colStart]) {
-                    teamSample += parseInt(row[sampleIndex], 10) || 0;
-                    teamCorrect += parseInt(row[correctIndex], 10) || 0;
-                }
-            });
+            acc[teamLead]['Sample Size'] += agent['Sample'];
+            acc[teamLead]['Correct'] += agent['Correct'];
+            return acc;
+        }, {});
 
-            var accuracy = teamSample > 0 ? (teamCorrect / teamSample) * 100 : 0;
-            teamPerformanceArray.push({ 'Team Lead': teamBlock.name, 'Accuracy': accuracy, 'Sample Size': teamSample });
+        var teamPerformanceArray = Object.values(teamPerformanceMap).map(function(team) {
+            var accuracy = team['Sample Size'] > 0 ? (team['Correct'] / team['Sample Size']) * 100 : 0;
+            return {
+                'Team Lead': team['Team Lead'],
+                'Accuracy': accuracy,
+                'Sample Size': team['Sample Size']
+            };
         });
         teamPerformanceArray.sort(function(a, b) { return b.Accuracy - a.Accuracy; });
-
+        
         // --- Calculations ---
         var totalSample = agents.reduce(function(sum, a) { return sum + a.Sample; }, 0);
         var totalCorrect = agents.reduce(function(sum, a) { return sum + a.Correct; }, 0);
@@ -484,30 +491,30 @@
             myChart.destroy();
         }
         myChart = new Chart(ctx, {
-            type: 'line',
+            type: 'bar',
             data: {
                 labels: filteredDaily.map(function(d) { return d.Date; }),
                 datasets: [
                     {
                         label: 'Internal QA Accuracy %',
                         data: filteredDaily.map(function(d) { return d.Internal_QA_Accuracy; }),
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
                         borderColor: 'rgb(59, 130, 246)',
-                        tension: 0.1,
-                        fill: false
+                        borderWidth: 1
                     },
                     {
                         label: 'BPO QA Accuracy %',
                         data: filteredDaily.map(function(d) { return d.BPO_QA_Accuracy; }),
+                        backgroundColor: 'rgba(103, 126, 215, 0.5)',
                         borderColor: 'rgb(103, 126, 215)',
-                        tension: 0.1,
-                        fill: false
+                        borderWidth: 1
                     },
                     {
                         label: 'MTD Accuracy %',
                         data: filteredDaily.map(function(d) { return d.MTD_Accuracy; }),
+                        backgroundColor: 'rgba(16, 185, 129, 0.5)',
                         borderColor: 'rgb(16, 185, 129)',
-                        tension: 0.1,
-                        fill: false
+                        borderWidth: 1
                     }
                 ]
             },
